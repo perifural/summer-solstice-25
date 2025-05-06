@@ -8,7 +8,7 @@ theme:
     accent: green
   icon:
     repo: fontawesome/brands/github
-copyright: © 2025 Perifural - 代码采用 MIT 许可，文档采用 CC BY 4.0 许可。
+copyright: © 2025 Perifural - CC BY 4.0
 repo_url: https://github.com/perifural/summer-solstice-25
 repo_name: perifural/summer-solstice-25
 extra:
