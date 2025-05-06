@@ -38,7 +38,10 @@ void setup() {
 void loop() {
   int rxPacketSize = Udp.parsePacket();
   if (rxPacketSize) {
-    int rxLen = Udp.read(packetBuffer, 1023);
+    // Why sizeof(packetBuffer)-1
+    // UDP packets are raw byte data, not null-terminated. 
+    // The 1024th place will be added null(0) if fully length is used. 
+    int rxLen = Udp.read(packetBuffer, sizeof(packetBuffer)-1);
     packetBuffer[rxLen] = 0;
 
     Serial.print("[");
@@ -47,7 +50,13 @@ void loop() {
     Serial.print(Udp.remotePort());
     Serial.print("] ");
     Serial.println(packetBuffer);
+  }
 
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.toCharArray(packetBuffer, sizeof(packetBuffer));
+    Serial.println(packetBuffer);
+    
     Udp.beginPacket(remoteIp, remotePort);
     Udp.write(packetBuffer);
     Udp.endPacket();
