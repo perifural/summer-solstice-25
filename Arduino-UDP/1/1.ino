@@ -55,6 +55,9 @@ void loop() {
   if (Serial.available() > 0) {
     String input = Serial.readStringUntil('\n');
     input.toCharArray(packetBuffer, sizeof(packetBuffer));
+    Serial.print("[You:");
+    Serial.print(localPort);
+    Serial.print("] ");
     Serial.println(packetBuffer);
     
     Udp.beginPacket(remoteIp, remotePort);
