@@ -38,7 +38,7 @@ void setup() {
 void loop() {
   int rxPacketSize = Udp.parsePacket();
   if (rxPacketSize) {
-    // Why sizeof(packetBuffer)-1
+    // Why sizeof(packetBuffer)-1 ?
     // UDP packets are raw byte data, not null-terminated. 
     // The 1024th place will be added null(0) if fully length is used. 
     int rxLen = Udp.read(packetBuffer, sizeof(packetBuffer)-1);
