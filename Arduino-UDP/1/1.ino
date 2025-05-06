@@ -39,9 +39,7 @@ void loop() {
   int rxPacketSize = Udp.parsePacket();
   if (rxPacketSize) {
     int rxLen = Udp.read(packetBuffer, 1023);
-    if (rxLen > 0) {
-      packetBuffer[rxLen] = 0;
-    }
+    packetBuffer[rxLen] = 0;
 
     Serial.print("[");
     Serial.print(Udp.remoteIP());
