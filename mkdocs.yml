@@ -1,0 +1,15 @@
+site_name: 夏至二五
+site_url: https://summer-solstice-25.perifural.com
+theme:
+  name: material
+  language: zh
+  palette:
+    primary: green
+    accent: green
+  icon:
+    repo: fontawesome/brands/github
+copyright: © 2025 Perifural - 代码采用 MIT 许可，文档采用 CC BY 4.0 许可。
+repo_url: https://github.com/perifural/summer-solstice-25
+repo_name: perifural/summer-solstice-25
+extra:
+  generator: false
