@@ -33,6 +33,7 @@ void setup() {
   Udp.begin(localPort);
   Serial.println("Ready");
   Serial.println();
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
