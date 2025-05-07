@@ -14,6 +14,7 @@ char packetBuffer[1024];
 WiFiUDP Udp;
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   while (!Serial) {}
   
