@@ -21,7 +21,7 @@ def listen():
         try:
             udpSocket.settimeout(1.0)
             data, addr = udpSocket.recvfrom(1024)
-            print(f"\n[Received from {addr}] {data.decode()}")
+            print(f"\n{addr} {data.decode()}")
         except socket.timeout:
             continue
         except Exception as e:
