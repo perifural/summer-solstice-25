@@ -1,0 +1,40 @@
+<!-- This webpage was generated with the help of AI (ChatGPT, OpenAI) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Final Grade Delay Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    img {
+      margin-top: 30px;
+      max-width: 90%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="dayCounter">Loading...</h1>
+  <img src="screenshot.png" alt="Screenshot related to assessment" />
+
+  <script>
+    const startDate = new Date('2025-04-14');
+    const today = new Date();
+
+    startDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = today - startDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    document.getElementById('dayCounter').textContent = 
+      `It has been ${diffDays} day${diffDays !== 1 ? 's' : ''} since the last assessment was submitted with no final grade received.`;
+  </script>
+</body>
+</html>
