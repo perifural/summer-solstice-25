@@ -1,7 +1,7 @@
-Modbus slave demo
+# Modbus slave demo
 
-Address: 0x01
+Address: `0x01`, set in `#define`. 
 
-Function code: 0x03
+Function code: `0x03`
 
-Respond: 100 (decimal)
+Respond: `uint16_t += 100` for `0x03` or else illegal. 
