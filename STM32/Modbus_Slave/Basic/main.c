@@ -34,6 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define MODBUS_SLAVE_ADDR 0x01
 
 /* USER CODE END PD */
 
@@ -48,6 +49,8 @@
 uint8_t rx_byte;
 uint8_t rx_buffer[256];
 uint16_t rx_index = 0;
+
+uint16_t value = 100;
 
 /* USER CODE END PV */
 
@@ -109,6 +112,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    value += 100;
+    HAL_Delay(200);
   }
   /* USER CODE END 3 */
 }
@@ -188,16 +193,28 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length) {
 
     if (crc_received != crc_calculated) return;
 
-    if (slave_addr == 0x01) {  // Change as needed
+    if (slave_addr == MODBUS_SLAVE_ADDR) {  // Change as needed
         if (function == 0x03) {
             // Simulate holding register values
             uint8_t response[7] = {
-                0x01, 0x03, 0x02, 0x00, 0x64  // 0x0064 = 100
+                MODBUS_SLAVE_ADDR, 0x03, 0x02, 
+                (value >> 8) & 0xFF,  // High byte
+                value & 0xFF          // Low byte
             };
             uint16_t crc = ModRTU_CRC(response, 5);
             response[5] = crc & 0xFF;
             response[6] = (crc >> 8) & 0xFF;
             HAL_UART_Transmit(&huart1, response, 7, HAL_MAX_DELAY);
+        } else {
+            // Unsupported function: send exception response (Illegal Function = 0x01)
+            uint8_t exception[5];
+            exception[0] = MODBUS_SLAVE_ADDR;
+            exception[1] = function | 0x80;  // Set MSB for exception
+            exception[2] = 0x01;             // Exception Code: Illegal Function
+            uint16_t crc = ModRTU_CRC(exception, 3);
+            exception[3] = crc & 0xFF;
+            exception[4] = (crc >> 8) & 0xFF;
+            HAL_UART_Transmit(&huart1, exception, 5, HAL_MAX_DELAY);
         }
     }
 }
