@@ -158,8 +158,10 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART1) {
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) 
+{
+    if (huart->Instance == USART1) 
+    {
         rx_buffer[rx_index++] = rx_byte;
 
         // Restart TIM2 to count silence interval
@@ -171,11 +173,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM2) {
-        HAL_TIM_Base_Stop_IT(htim);  // Stop timer until next UART reception
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
+{
+    if (htim->Instance == TIM2) 
+    {
+        // Stop timer until next UART reception
+        HAL_TIM_Base_Stop_IT(htim); 
 
-        // Frame complete — process Modbus frame
+        // Frame complete, process Modbus frame
         parse_modbus_frame(rx_buffer, rx_index);
 
         // Reset index
@@ -183,8 +188,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
-void parse_modbus_frame(uint8_t *frame, uint16_t length) {
-    if (length < 4) return;  // Minimum Modbus RTU length
+void parse_modbus_frame(uint8_t *frame, uint16_t length) 
+{
+    // Minimum Modbus RTU length
+    if (length < 4) return; 
 
     uint8_t slave_addr = frame[0];
     uint8_t function = frame[1];
@@ -193,9 +200,10 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length) {
 
     if (crc_received != crc_calculated) return;
 
-    if (slave_addr == MODBUS_SLAVE_ADDR) {  // Change as needed
-        if (function == 0x03) {
-            // Simulate holding register values
+    if (slave_addr == MODBUS_SLAVE_ADDR) 
+    { 
+        if (function == 0x03) 
+        {
             uint8_t response[7] = {
                 MODBUS_SLAVE_ADDR, 0x03, 0x02, 
                 (value >> 8) & 0xFF,  // High byte
@@ -205,7 +213,9 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length) {
             response[5] = crc & 0xFF;
             response[6] = (crc >> 8) & 0xFF;
             HAL_UART_Transmit(&huart1, response, 7, HAL_MAX_DELAY);
-        } else {
+        } 
+        else 
+        {
             // Unsupported function: send exception response (Illegal Function = 0x01)
             uint8_t exception[5];
             exception[0] = MODBUS_SLAVE_ADDR;
@@ -219,15 +229,21 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length) {
     }
 }
 
-uint16_t ModRTU_CRC(uint8_t *buf, int len) {
+uint16_t ModRTU_CRC(uint8_t *buf, int len) 
+{
     uint16_t crc = 0xFFFF;
-    for (int pos = 0; pos < len; pos++) {
+    for (int pos = 0; pos < len; pos++) 
+    {
         crc ^= (uint16_t)buf[pos];
-        for (int i = 8; i != 0; i--) {
-            if ((crc & 0x0001) != 0) {
+        for (int i = 8; i != 0; i--) 
+        {
+            if ((crc & 0x0001) != 0) 
+            {
                 crc >>= 1;
                 crc ^= 0xA001;
-            } else {
+            } 
+            else 
+            {
                 crc >>= 1;
             }
         }
