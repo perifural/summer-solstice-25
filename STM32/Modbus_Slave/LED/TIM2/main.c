@@ -178,7 +178,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM2) 
     {
         // Stop timer until next UART reception
-        HAL_TIM_Base_Stop_IT(htim); 
+        HAL_TIM_Base_Stop_IT(&htim2); 
 
         // Frame complete, process Modbus frame
         parse_modbus_frame(rx_buffer, rx_index);
