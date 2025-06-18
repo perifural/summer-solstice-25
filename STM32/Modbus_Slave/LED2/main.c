@@ -280,6 +280,7 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
                     HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
                     HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
                 }
+                else goto flg_modbus_illegal;
             }
             else if (start_addr_hi == 0x00 && start_addr_lo == 0x01)
             {
@@ -295,7 +296,9 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
                     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
                     HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
                 }
+                else goto flg_modbus_illegal;
             }
+            else goto flg_modbus_illegal;
             break;
         }
         
