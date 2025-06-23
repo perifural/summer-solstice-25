@@ -54,7 +54,7 @@ uint8_t rx_byte;
 uint8_t rx_buffer[256];
 uint16_t rx_index = 0;
 
-uint16_t value = 100;
+uint16_t value[4] = {0, 1, 2, 3};
 bool led_status[2] = {false, false};
 bool key_status[12] = {false, false, false, false, false, false, false, false, false, false, false, false};
 
@@ -199,7 +199,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM7)
     {
         // Update test value per 200ms. 
-        value += 100;
+        value[0] += 100;
         key_status[0] = !HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin);
         key_status[1] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
         key_status[2] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
@@ -234,28 +234,33 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
         case (0x01):
         {
             // Ensure enough bytes for address and content
-            if (length < 8) goto flg_modbus_illegal;
+            if (length < 8) goto lb_modbus_illegal;
 
             uint16_t start_addr = (frame[2] << 8) | frame[3];
             uint16_t coil_count = (frame[4] << 8) | frame[5];
             
-            if (start_addr + coil_count - 1 > 0x0001) goto flg_modbus_illegal;
+            if (start_addr + coil_count - 1 > 0x0001) goto lb_modbus_illegal;
             uint8_t packed_byte_count = (coil_count + 7) / 8;
             
             uint8_t packed_byte[packed_byte_count]; 
             pack_modbus_coils(led_status, start_addr, coil_count, packed_byte);
             
-            uint8_t response[6] = {
-                MODBUS_SLAVE_ADDR,      // Slave addr
-                0x01,                   // Func code
-                packed_byte_count,      // byte count
-                packed_byte[0]          // Coil status
-            };
+            uint16_t response_length = 5 + packed_byte_count;
+            uint8_t response[response_length];
             
-            uint16_t crc = ModRTU_CRC(response, 4);
-            response[4] = crc & 0xFF;
-            response[5] = (crc >> 8) & 0xFF;
-            HAL_UART_Transmit(&huart1, response, 6, HAL_MAX_DELAY);
+            response[0] = MODBUS_SLAVE_ADDR;
+            response[1] = 0x01;
+            response[2] = packed_byte_count;
+            
+            for (int i = 3, j = 0; i < 3 + packed_byte_count; i++, j++)
+            {
+                response[i] = packed_byte[j];
+            }
+            
+            uint16_t crc = ModRTU_CRC(response, response_length - 2);
+            response[response_length - 2] = crc & 0xFF;
+            response[response_length - 1] = (crc >> 8) & 0xFF;
+            HAL_UART_Transmit(&huart1, response, response_length, HAL_MAX_DELAY);
             
 //            if (start_addr == 0x0000) 
 //            {
@@ -284,50 +289,80 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
         case (0x02):
         {
             // Ensure enough bytes for address and content
-            if (length < 8) goto flg_modbus_illegal;
+            if (length < 8) goto lb_modbus_illegal;
 
             uint16_t start_addr = (frame[2] << 8) | frame[3];
             uint16_t coil_count = (frame[4] << 8) | frame[5];
             
-            if (start_addr + coil_count - 1 > 0x0011) goto flg_modbus_illegal;
+            if (start_addr + coil_count - 1 > 0x000B) goto lb_modbus_illegal;
             uint8_t packed_byte_count = (coil_count + 7) / 8;
             
             uint8_t packed_byte[packed_byte_count]; 
             pack_modbus_coils(key_status, start_addr, coil_count, packed_byte);
             
-            uint8_t response[7] = {
-                MODBUS_SLAVE_ADDR,      // Slave addr
-                0x02,                   // Func code
-                packed_byte_count,      // byte count
-                packed_byte[0],         // Coil status 0
-                packed_byte[1]          // Coil status 1
-            };
+            uint16_t response_length = 5 + packed_byte_count;
+            uint8_t response[response_length];
             
-            uint16_t crc = ModRTU_CRC(response, 5);
-            response[5] = crc & 0xFF;
-            response[6] = (crc >> 8) & 0xFF;
-            HAL_UART_Transmit(&huart1, response, 7, HAL_MAX_DELAY);
+            response[0] = MODBUS_SLAVE_ADDR;
+            response[1] = 0x02;
+            response[2] = packed_byte_count;
+            
+            for (int i = 3, j = 0; i < 3 + packed_byte_count; i++, j++)
+            {
+                response[i] = packed_byte[j];
+            }
+            
+            uint16_t crc = ModRTU_CRC(response, response_length - 2);
+            response[response_length - 2] = crc & 0xFF;
+            response[response_length - 1] = (crc >> 8) & 0xFF;
+            HAL_UART_Transmit(&huart1, response, response_length, HAL_MAX_DELAY);
             break;
         }
         
         case (0x03):
         {
-            uint8_t response[7] = {
-                MODBUS_SLAVE_ADDR, 0x03, 0x02, 
-                (value >> 8) & 0xFF,  // High byte
-                value & 0xFF          // Low byte
-            };
-            uint16_t crc = ModRTU_CRC(response, 5);
-            response[5] = crc & 0xFF;
-            response[6] = (crc >> 8) & 0xFF;
-            HAL_UART_Transmit(&huart1, response, 7, HAL_MAX_DELAY);
+            if (length < 6) goto lb_modbus_illegal;
+            
+            uint16_t start_addr = (frame[2] << 8) | frame[3];
+            uint16_t reg_count = (frame[4] << 8) | frame[5];
+            
+            if (start_addr + reg_count - 1 > 0x0003) goto lb_modbus_illegal;
+            uint16_t byte_count = reg_count * 2;
+            uint16_t response_length = 5 + byte_count;
+            
+            uint8_t response[response_length];
+            response[0] = MODBUS_SLAVE_ADDR;
+            response[1] = 0x03;
+            response[2] = byte_count;
+            
+            for (int i = 3, j = start_addr; i < 3 + byte_count; i += 2, j++)
+            {
+                response[i] = (value[j] >> 8) & 0xFF;    // High byte
+                response[i+1] = value[j] & 0xFF;         // Low byte
+            }
+            
+            uint16_t crc = ModRTU_CRC(response, response_length - 2);
+            response[response_length - 2] = crc & 0xFF;
+            response[response_length - 1] = (crc >> 8) & 0xFF;
+            HAL_UART_Transmit(&huart1, response, response_length, HAL_MAX_DELAY);
+            
+            
+//            uint8_t response[response_length] = {
+//                MODBUS_SLAVE_ADDR, 0x03, 0x02, 
+//                (value[0] >> 8) & 0xFF,  // High byte
+//                value[0] & 0xFF          // Low byte
+//            };
+//            uint16_t crc = ModRTU_CRC(response, 5);
+//            response[5] = crc & 0xFF;
+//            response[6] = (crc >> 8) & 0xFF;
+//            HAL_UART_Transmit(&huart1, response, 7, HAL_MAX_DELAY);
             break;
         }
         
         case (0x05):
         {
             // Ensure enough bytes for address and content
-            if (length < 8) break;
+            if (length < 8) goto lb_modbus_illegal;
 
             uint16_t start_addr = (frame[2] << 8) | frame[3];
             uint16_t write_cont = (frame[4] << 8) | frame[5];
@@ -336,44 +371,143 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
 //            uint8_t write_cont_hi = (write_cont >> 8) & 0xFF;
 //            uint8_t write_cont_lo = write_cont & 0xFF;
             
-            if (start_addr == 0x0000) 
+            switch (start_addr)
             {
-                if (write_cont == 0xFF00)
+                case (0x0000):
                 {
-                    led_status[0] = 1;
-                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
-                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                    switch (write_cont)
+                    {
+                        case (0xFF00):
+                        {
+                            led_status[0] = 1;
+                            HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
+                            HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                            break;
+                        }
+                        
+                        case (0x0000):
+                        {
+                            led_status[0] = 0;
+                            HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
+                            HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                            break;
+                        }
+                        
+                        default:
+                            goto lb_modbus_illegal;
+                    }
+                    break;
                 }
-                else if (write_cont == 0x0000)
+                
+                case (0x0001):
                 {
-                    led_status[0] = 0;
-                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                    switch (write_cont)
+                    {
+                        case (0xFF00):
+                        {
+                            led_status[1] = 1;
+                            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+                            HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                            break;
+                        }
+                        
+                        case (0x0000):
+                        {
+                            led_status[1] = 0;
+                            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+                            HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+                            break;
+                        }
+                        
+                        default:
+                            goto lb_modbus_illegal;
+                    }
+                    break;
                 }
-                else goto flg_modbus_illegal;
+                
+                default:
+                    goto lb_modbus_illegal;
             }
-            else if (start_addr == 0x0001)
+            
+//            if (start_addr == 0x0000) 
+//            {
+//                if (write_cont == 0xFF00)
+//                {
+//                    led_status[0] = 1;
+//                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
+//                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+//                }
+//                else if (write_cont == 0x0000)
+//                {
+//                    led_status[0] = 0;
+//                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
+//                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+//                }
+//                else goto lb_modbus_illegal;
+//            }
+//            else if (start_addr == 0x0001)
+//            {
+//                if (write_cont == 0xFF00)
+//                {
+//                    led_status[1] = 1;
+//                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+//                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+//                }
+//                else if (write_cont == 0x0000)
+//                {
+//                    led_status[1] = 0;
+//                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+//                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
+//                }
+//                else goto lb_modbus_illegal;
+//            }
+//            else goto lb_modbus_illegal;
+            break;
+        }
+        
+        case (0x06):
+        {
+            if (length < 8) goto lb_modbus_illegal; 
+            uint16_t start_addr = (frame[2] << 8) | frame[3];
+            if (start_addr > 0x0003) goto lb_modbus_illegal;
+            value[start_addr] = (frame[4] << 8) | frame[5];
+            HAL_UART_Transmit(&huart1, frame, length, HAL_MAX_DELAY);
+            break;
+        }
+        
+        case (0x10):
+        {
+            if (length < 11) goto lb_modbus_illegal;
+            uint16_t start_addr = (frame[2] << 8) | frame[3];
+            uint16_t reg_count = (frame[4] << 8) | frame[5];
+            uint8_t byte_count = frame[6];
+            
+            if (start_addr + reg_count - 1 > 0x0003) goto lb_modbus_illegal;
+            if (reg_count * 2 != byte_count) goto lb_modbus_illegal;
+            
+            for (uint16_t i = start_addr, j = 7; i < start_addr + reg_count; i++, j += 2)
             {
-                if (write_cont == 0xFF00)
-                {
-                    led_status[1] = 1;
-                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
-                }
-                else if (write_cont == 0x0000)
-                {
-                    led_status[1] = 0;
-                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-                    HAL_UART_Transmit(&huart1, frame, 8, HAL_MAX_DELAY);
-                }
-                else goto flg_modbus_illegal;
+                value[i] = (frame[j] << 8) | frame[j+1];
             }
-            else goto flg_modbus_illegal;
+            
+            uint8_t response[8];
+            response[0] = MODBUS_SLAVE_ADDR;
+            response[1] = 0x10;
+            response[2] = start_addr & 0xFF;
+            response[3] = (start_addr >> 8) & 0xFF;
+            response[4] = (reg_count >> 8) & 0xFF;
+            response[5] = reg_count & 0xFF;
+            
+            uint16_t crc = ModRTU_CRC(response, 8 - 2);
+            response[8 - 2] = crc & 0xFF;
+            response[8 - 1] = (crc >> 8) & 0xFF;
+            HAL_UART_Transmit(&huart1, response, 8, HAL_MAX_DELAY);
+            
             break;
         }
         
         default:
-        flg_modbus_illegal: 
+        lb_modbus_illegal: 
         {
             // Unsupported function: send exception response (Illegal Function = 0x01)
             uint8_t exception[5];
