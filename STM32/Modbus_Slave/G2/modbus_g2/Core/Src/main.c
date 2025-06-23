@@ -29,6 +29,24 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct
+{
+    uint8_t rx_byte;
+    uint8_t rx_flag;
+    uint8_t rx_buffer[256];
+    uint16_t rx_index;
+    uint8_t tim_flag;
+} 
+modbus_t;
+
+typedef struct
+{
+    uint8_t tim_flag;
+}
+value_t;
+
+modbus_t modbus;
+value_t value;
 
 /* USER CODE END PTD */
 
@@ -39,6 +57,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
 
 /* USER CODE END PM */
 
@@ -51,6 +70,8 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void modbus_handler(void);
+void value_handler(void);
 
 /* USER CODE END PFP */
 
@@ -93,6 +114,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart1, &modbus.rx_byte, 1);
+  __HAL_TIM_SET_COUNTER(&htim6, 0);
+  HAL_TIM_Base_Stop_IT(&htim6);
+  HAL_TIM_Base_Start_IT(&htim7);
 
   /* USER CODE END 2 */
 
@@ -103,6 +128,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    modbus_handler();
+    value_handler();
   }
   /* USER CODE END 3 */
 }
@@ -147,6 +174,47 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) 
+{
+    if (huart->Instance == USART1) 
+    {
+        modbus.rx_flag = 1;
+    }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
+{
+    if (htim->Instance == TIM6) 
+    {
+       modbus.tim_flag = 1;
+    }
+    
+    if (htim->Instance == TIM7)
+    {
+        value.tim_flag = 1;
+    }
+}
+
+void modbus_handler()
+{
+    if (modbus.rx_flag)
+    {
+        modbus.rx_flag = 0;
+    }
+    
+    if (modbus.tim_flag)
+    {
+        modbus.tim_flag = 0;
+    }
+}
+
+void value_handler()
+{
+    if (value.tim_flag)
+    {
+        value.tim_flag = 0;
+    }
+}
 
 /* USER CODE END 4 */
 
