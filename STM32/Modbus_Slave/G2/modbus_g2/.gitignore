@@ -1,7 +1,5 @@
-# Ignore everything by default
 *
-
-# But track these:
 !.gitignore
 !*.ioc
 !Core/
+!Core/**
