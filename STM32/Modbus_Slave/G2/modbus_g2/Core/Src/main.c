@@ -130,7 +130,7 @@ int main(void)
   __HAL_TIM_SET_COUNTER(&htim6, 0);
   HAL_TIM_Base_Stop_IT(&htim6);
   HAL_TIM_Base_Start_IT(&htim7);
-  void value_init();
+  value_init();
 
   /* USER CODE END 2 */
 
@@ -144,7 +144,6 @@ int main(void)
     modbus_handler();
     value_handler();
       
-    //printf("a\r\n");
   }
   /* USER CODE END 3 */
 }
@@ -266,6 +265,11 @@ void value_handler()
     if (value.tim_flag)
     {
         value.tim_flag = 0;
+        
+        value.key[0] = !HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin);
+        value.key[1] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
+        value.key[2] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
+        value.key[3] = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
     }
 }
 
@@ -307,7 +311,6 @@ void parse_modbus_frame(uint8_t *frame, uint16_t length)
 {
     // Minimum Modbus RTU length
     if (length < 4) return; 
-printf("b\n");
     
     uint8_t slave_addr = frame[0];
     uint8_t function = frame[1];
@@ -317,14 +320,10 @@ printf("b\n");
 
     if (slave_addr != MODBUS_SLAVE_ADDR) return;
     
-    printf("%x\n", function);
-
     switch (function) 
     {
         case (0x01):
         {
-                    printf("a\r\n");
-
             // Ensure enough bytes for address and content
             if (length < 8) goto lb_modbus_illegal;
 
@@ -386,7 +385,7 @@ printf("b\n");
             uint16_t start_addr = (frame[2] << 8) | frame[3];
             uint16_t coil_count = (frame[4] << 8) | frame[5];
             
-            if (start_addr + coil_count - 1 > 0x000B) goto lb_modbus_illegal;
+            if (start_addr + coil_count - 1 > 0x0003) goto lb_modbus_illegal;
             uint8_t packed_byte_count = (coil_count + 7) / 8;
             
             uint8_t packed_byte[packed_byte_count]; 
@@ -431,6 +430,7 @@ printf("b\n");
             {
                 response[i] = (value.reg[j] >> 8) & 0xFF;    // High byte
                 response[i+1] = value.reg[j] & 0xFF;         // Low byte
+                printf("%d\r\n", value.reg[j]);
             }
             
             uint16_t crc = ModRTU_CRC(response, response_length - 2);
