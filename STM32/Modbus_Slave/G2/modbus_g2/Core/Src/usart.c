@@ -21,6 +21,8 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
+extern modbus_t modbus;
+extern value_t value;
 
 /* USER CODE END 0 */
 
@@ -193,5 +195,17 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) 
+{
+    if (huart->Instance == USART1) 
+    {
+        modbus.rx_flag = 1;
+    }
+}
 
+int fputc(int ch, FILE *f) 
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
 /* USER CODE END 1 */

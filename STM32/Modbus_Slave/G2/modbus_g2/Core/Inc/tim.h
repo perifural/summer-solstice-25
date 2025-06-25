@@ -44,6 +44,7 @@ void MX_TIM6_Init(void);
 void MX_TIM7_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 
 /* USER CODE END Prototypes */
 

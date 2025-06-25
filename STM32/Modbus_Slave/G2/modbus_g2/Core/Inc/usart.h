@@ -29,6 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -44,6 +45,8 @@ void MX_USART1_UART_Init(void);
 void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+int fputc(int ch, FILE *f);
 
 /* USER CODE END Prototypes */
 

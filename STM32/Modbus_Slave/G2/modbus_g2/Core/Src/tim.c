@@ -21,6 +21,8 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
+extern modbus_t modbus;
+extern value_t value;
 
 /* USER CODE END 0 */
 
@@ -167,5 +169,17 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
+{
+    if (htim->Instance == TIM6) 
+    {
+       modbus.tim_flag = 1;
+    }
+    
+    if (htim->Instance == TIM7)
+    {
+        value.tim_flag = 1;
+    }
+}
 
 /* USER CODE END 1 */

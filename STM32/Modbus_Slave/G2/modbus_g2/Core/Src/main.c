@@ -24,36 +24,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <stdio.h>
+
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct
-{
-    uint8_t rx_byte;
-    uint8_t rx_flag;
-    uint8_t rx_buffer[256];
-    uint16_t rx_index;
-    uint8_t tim_flag;
-} 
-modbus_t;
-
-typedef struct
-{
-    uint8_t tim_flag;
-    uint16_t reg[4];
-    bool led[2];
-    bool key[4];
-}
-value_t;
-
-modbus_t modbus;
-value_t value;
 
 /* USER CODE END PTD */
 
@@ -72,6 +48,8 @@ value_t value;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+modbus_t modbus;
+value_t value;
 
 /* USER CODE END PV */
 
@@ -188,90 +166,9 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-int fputc(int ch, FILE *f) 
-{
-    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return ch;
-}
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) 
-{
-    if (huart->Instance == USART1) 
-    {
-        modbus.rx_flag = 1;
-    }
-}
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) 
-{
-    if (htim->Instance == TIM6) 
-    {
-       modbus.tim_flag = 1;
-    }
-    
-    if (htim->Instance == TIM7)
-    {
-        value.tim_flag = 1;
-    }
-}
 
-void modbus_handler()
-{
-    if (modbus.rx_flag)
-    {
-        modbus.rx_flag = 0;
-        
-        modbus.rx_buffer[modbus.rx_index++] = modbus.rx_byte;
-
-        // Restart TIM6 to count silence interval
-        __HAL_TIM_SET_COUNTER(&htim6, 0);
-        HAL_TIM_Base_Start_IT(&htim6);
-
-        // Restart receiving next byte
-        HAL_UART_Receive_IT(&huart1, &modbus.rx_byte, 1);
-    }
-    
-    if (modbus.tim_flag)
-    {
-        modbus.tim_flag = 0;
-        
-        // Stop timer until next UART reception
-        HAL_TIM_Base_Stop_IT(&htim6); 
-        
-        // Frame complete, process Modbus frame
-        parse_modbus_frame(modbus.rx_buffer, modbus.rx_index);
-
-        // Reset index
-        modbus.rx_index = 0;
-    }
-}
-
-void value_init()
-{
-    value.reg[0] = 0;
-    value.reg[1] = 1;
-    value.reg[2] = 2;
-    value.reg[3] = 3;
-    value.led[0] = false;
-    value.led[1] = false;
-    value.key[0] = false;
-    value.key[1] = false;
-    value.key[2] = false;
-    value.key[3] = false;
-}
-
-void value_handler()
-{
-    if (value.tim_flag)
-    {
-        value.tim_flag = 0;
-        
-        value.key[0] = !HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin);
-        value.key[1] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
-        value.key[2] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
-        value.key[3] = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
-    }
-}
 
 uint16_t ModRTU_CRC(uint8_t *buf, int len) 
 {
