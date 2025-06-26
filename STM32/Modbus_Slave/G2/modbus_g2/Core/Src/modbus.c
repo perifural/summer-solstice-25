@@ -36,7 +36,7 @@ void modbus_handler()
 
 void value_init()
 {
-    for (uint16_t i = 0; i < 2000; i++)
+    for (uint16_t i = 0; i < 1000; i++)
     {
         value.bit[i] = i % 2;
     }
@@ -146,7 +146,7 @@ void modbus_parse()
         
         default:
         {
-            modbus_fc_illegal(func);
+            modbus_exception(func, MODBUS_ILLEGAL_FUNCTION);
         }
     }
 }
@@ -158,7 +158,18 @@ void modbus_fc_01_02(uint8_t func)
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
     uint16_t bit_count = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
     
-    if (start_addr + bit_count - 1 > 0x07CF) return;
+    if (start_addr > 0x03E7)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    
+    if (start_addr + bit_count - 1 > 0x03E7) 
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    
     uint8_t packed_byte_count = (bit_count + 7) / 8;
 
     uint8_t packed_byte[packed_byte_count]; 
@@ -315,17 +326,16 @@ void modbus_fc_10()
     HAL_UART_Transmit(&huart1, response, 8, HAL_MAX_DELAY);
 }
 
-void modbus_fc_illegal(uint8_t func)
+void modbus_exception(uint8_t func, uint8_t exception)
 {
-    // Unsupported function: send exception response (Illegal Function = 0x01)
-    uint8_t exception[5];
-    exception[0] = MODBUS_SLAVE_ADDR;
-    exception[1] = func | 0x80;  // Set MSB for exception
-    exception[2] = 0x01;         // Exception Code: Illegal Function
-    uint16_t crc = ModRTU_CRC(exception, 3);
-    exception[3] = crc & 0xFF;
-    exception[4] = (crc >> 8) & 0xFF;
-    HAL_UART_Transmit(&huart1, exception, 5, HAL_MAX_DELAY);
+    uint8_t response[5];
+    response[0] = MODBUS_SLAVE_ADDR;
+    response[1] = func | 0x80;  // Set MSB for exception
+    response[2] = exception;
+    uint16_t crc = ModRTU_CRC(response, 3);
+    response[3] = crc & 0xFF;
+    response[4] = (crc >> 8) & 0xFF;
+    HAL_UART_Transmit(&huart1, response, 5, HAL_MAX_DELAY);
 }
 
 void modbus_illegal()

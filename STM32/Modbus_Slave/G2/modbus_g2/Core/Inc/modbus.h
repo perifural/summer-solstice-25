@@ -5,6 +5,13 @@
 
 #define MODBUS_SLAVE_ADDR 0x01
 
+#define MODBUS_ILLEGAL_FUNCTION 0x01
+#define MODBUS_ILLEGAL_DATA_ADDRESS 0x02
+#define MODBUS_ILLEGAL_DATA_VALUE 0x03
+#define MODBUS_SLAVE_DEVICE_FAILURE 0x04
+#define MODBUS_SLAVE_DEVICE_BUSY 0x06
+
+
 void modbus_handler(void);
 void value_handler(void);
 void value_init(void);
@@ -16,5 +23,5 @@ void modbus_fc_03();
 void modbus_fc_05();
 void modbus_fc_06();
 void modbus_fc_10();
-void modbus_fc_illegal(uint8_t func);
+void modbus_exception(uint8_t func, uint8_t exception_code);
 void modbus_illegal();
