@@ -42,14 +42,15 @@ typedef struct
     uint8_t rx_flag;
     uint8_t rx_buffer[256];
     uint16_t rx_index;
-    uint8_t tim_flag;
+    volatile uint8_t tim_flag;
 } 
 modbus_t;
 
 typedef struct
 {
-    uint8_t tim_flag;
-    uint16_t reg[4];
+    volatile uint8_t tim_flag;
+    uint8_t bit[2000];
+    uint16_t reg[200];
     uint8_t led[2];
     uint8_t key[4];
 }
