@@ -41,6 +41,11 @@ void value_init()
         value.bit[i] = i % 2;
     }
     
+    for (uint16_t i = 0; i < 100; i++)
+    {
+        value.reg[i] = i * 100;
+    }
+    
     value.led[0] = 0;
     value.led[1] = 0;
     value.key[0] = 0;
@@ -122,7 +127,13 @@ void modbus_parse()
         
         case (0x03):
         {
-            modbus_fc_03();
+            modbus_fc_03_04(0x03);
+            break;
+        }
+        
+        case (0x04):
+        {
+            modbus_fc_03_04(0x04);
             break;
         }
         
@@ -193,27 +204,37 @@ void modbus_fc_01_02(uint8_t func)
     HAL_UART_Transmit(&huart1, response, response_length, HAL_MAX_DELAY);
 }
 
-void modbus_fc_03()
+void modbus_fc_03_04(uint8_t func)
 {
     if (modbus.rx_index < 6) modbus_illegal();
 
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
     uint16_t reg_count = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
 
-    if (start_addr + reg_count - 1 > 0x0003) modbus_illegal();
+    if (start_addr > 0x0063)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    
+    if (start_addr + reg_count - 1 > 0x0063)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    
     uint16_t byte_count = reg_count * 2;
     uint16_t response_length = 5 + byte_count;
 
     uint8_t response[response_length];
     response[0] = MODBUS_SLAVE_ADDR;
-    response[1] = 0x03;
+    response[1] = func;
     response[2] = byte_count;
 
     for (int i = 3, j = start_addr; i < 3 + byte_count; i += 2, j++)
     {
         response[i] = (value.reg[j] >> 8) & 0xFF;    // High byte
         response[i+1] = value.reg[j] & 0xFF;         // Low byte
-        printf("%d\r\n", value.reg[j]);
     }
 
     uint16_t crc = ModRTU_CRC(response, response_length - 2);

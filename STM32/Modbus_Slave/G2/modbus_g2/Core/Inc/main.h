@@ -50,7 +50,7 @@ typedef struct
 {
     volatile uint8_t tim_flag;
     uint8_t bit[1000];
-    uint16_t reg[200];
+    uint16_t reg[100];
     uint8_t led[2];
     uint8_t key[4];
 }
