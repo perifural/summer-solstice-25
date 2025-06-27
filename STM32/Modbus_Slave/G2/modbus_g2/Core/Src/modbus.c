@@ -64,6 +64,9 @@ void value_handler()
         value.key[1] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
         value.key[2] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
         value.key[3] = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
+        
+        HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, !value.bit[0]);
+        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !value.bit[1]);
     }
 }
 
@@ -139,19 +142,19 @@ void modbus_parse()
         
         case (0x05):
         {
-            modbus_fc_05();
+            modbus_fc_05(0x05);
             break;
         }
         
         case (0x06):
         {
-            modbus_fc_06();
+            modbus_fc_06(0x06);
             break;
         }
         
         case (0x10):
         {
-            modbus_fc_10();
+            modbus_fc_10(0x10);
             break;
         }
         
@@ -164,20 +167,24 @@ void modbus_parse()
 
 void modbus_fc_01_02(uint8_t func)
 {
-    if (modbus.rx_index < 8) modbus_illegal();
+    if (modbus.rx_index < 8)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
 
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
     uint16_t bit_count = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
     
-    if (start_addr > 0x03E7)
-    {
-        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
-        return;
-    }
+//    if (start_addr > 0x03E7)
+//    {
+//        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+//        return;
+//    }
     
     if (start_addr + bit_count - 1 > 0x03E7) 
     {
-        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
         return;
     }
     
@@ -206,20 +213,24 @@ void modbus_fc_01_02(uint8_t func)
 
 void modbus_fc_03_04(uint8_t func)
 {
-    if (modbus.rx_index < 6) modbus_illegal();
+    if (modbus.rx_index < 6)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
 
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
     uint16_t reg_count = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
 
-    if (start_addr > 0x0063)
-    {
-        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
-        return;
-    }
+//    if (start_addr > 0x0063)
+//    {
+//        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+//        return;
+//    }
     
     if (start_addr + reg_count - 1 > 0x0063)
     {
-        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
         return;
     }
     
@@ -243,90 +254,92 @@ void modbus_fc_03_04(uint8_t func)
     HAL_UART_Transmit(&huart1, response, response_length, HAL_MAX_DELAY);
 }
 
-void modbus_fc_05()
+void modbus_fc_05(uint8_t func)
 {
-    if (modbus.rx_index < 8) modbus_illegal();
-
-    uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
-    uint16_t write_cont = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
-
-    switch (start_addr)
+    if (modbus.rx_index < 8)
     {
-        case (0x0000):
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
+
+    uint16_t addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
+    uint16_t cont = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
+    
+    if (addr > 0x03E7)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    
+    uint8_t bit = 0;
+    switch (cont)
+    {
+        case (0xFF00): 
         {
-            switch (write_cont)
-            {
-                case (0xFF00):
-                {
-                    value.led[0] = 1;
-                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
-                    HAL_UART_Transmit(&huart1, modbus.rx_buffer, 8, HAL_MAX_DELAY);
-                    break;
-                }
-                
-                case (0x0000):
-                {
-                    value.led[0] = 0;
-                    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-                    HAL_UART_Transmit(&huart1, modbus.rx_buffer, 8, HAL_MAX_DELAY);
-                    break;
-                }
-                
-                default:
-                    modbus_illegal();
-            }
+            bit = 1;
             break;
         }
         
-        case (0x0001):
+        case (0x0000):
         {
-            switch (write_cont)
-            {
-                case (0xFF00):
-                {
-                    value.led[1] = 1;
-                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-                    HAL_UART_Transmit(&huart1, modbus.rx_buffer, 8, HAL_MAX_DELAY);
-                    break;
-                }
-                
-                case (0x0000):
-                {
-                    value.led[1] = 0;
-                    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-                    HAL_UART_Transmit(&huart1, modbus.rx_buffer, 8, HAL_MAX_DELAY);
-                    break;
-                }
-                
-                default:
-                    modbus_illegal();
-            }
+            bit = 0;
             break;
         }
         
         default:
-            modbus_illegal();
+        {
+            modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+            return;
+        }
     }
+    
+    value.bit[addr] = bit;
+    HAL_UART_Transmit(&huart1, modbus.rx_buffer, 8, HAL_MAX_DELAY);
 }
 
-void modbus_fc_06()
+void modbus_fc_06(uint8_t func)
 {
-    if (modbus.rx_index < 8) modbus_illegal(); 
+    if (modbus.rx_index < 8)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
-    if (start_addr > 0x0003) modbus_illegal();
+    
+    if (start_addr > 0x0063)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    
     value.reg[start_addr] = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
     HAL_UART_Transmit(&huart1, modbus.rx_buffer, modbus.rx_index, HAL_MAX_DELAY);
 }
 
-void modbus_fc_10()
+void modbus_fc_10(uint8_t func)
 {
-    if (modbus.rx_index < 11) modbus_illegal();
+    if (modbus.rx_index < 11)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    
     uint16_t start_addr = (modbus.rx_buffer[2] << 8) | modbus.rx_buffer[3];
     uint16_t reg_count = (modbus.rx_buffer[4] << 8) | modbus.rx_buffer[5];
     uint8_t byte_count = modbus.rx_buffer[6];
 
-    if (start_addr + reg_count - 1 > 0x0003) modbus_illegal();
-    if (reg_count * 2 != byte_count) modbus_illegal();
+    if (start_addr + reg_count - 1 > 0x0063)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    
+    if (reg_count * 2 != byte_count)
+    {
+        modbus_exception(func, MODBUS_ILLEGAL_DATA_VALUE);
+        return;
+    }
 
     for (uint16_t i = start_addr, j = 7; i < start_addr + reg_count; i++, j += 2)
     {

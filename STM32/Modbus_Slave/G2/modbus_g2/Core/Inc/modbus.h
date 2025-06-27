@@ -20,8 +20,8 @@ void pack_modbus_bits(const uint8_t *bit, uint16_t start_addr, uint16_t bit_coun
 void modbus_parse();
 void modbus_fc_01_02(uint8_t func);
 void modbus_fc_03_04(uint8_t func);
-void modbus_fc_05();
-void modbus_fc_06();
-void modbus_fc_10();
+void modbus_fc_05(uint8_t func);
+void modbus_fc_06(uint8_t func);
+void modbus_fc_10(uint8_t func);
 void modbus_exception(uint8_t func, uint8_t exception_code);
 void modbus_illegal();
