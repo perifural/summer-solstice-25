@@ -45,13 +45,6 @@ void value_init()
     {
         value.reg[i] = i * 100;
     }
-    
-    value.led[0] = 0;
-    value.led[1] = 0;
-    value.key[0] = 0;
-    value.key[1] = 0;
-    value.key[2] = 0;
-    value.key[3] = 0;
 }
 
 void value_handler()
@@ -60,13 +53,13 @@ void value_handler()
     {
         value.tim_flag = 0;
         
-        value.key[0] = !HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin);
-        value.key[1] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
-        value.key[2] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
-        value.key[3] = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
-        
         HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, !value.bit[0]);
         HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !value.bit[1]);
+        
+        value.bit[2] = !HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin);
+        value.bit[3] = !HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
+        value.bit[4] = !HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
+        value.bit[5] = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
     }
 }
 
@@ -371,8 +364,3 @@ void modbus_exception(uint8_t func, uint8_t exception)
     response[4] = (crc >> 8) & 0xFF;
     HAL_UART_Transmit(&huart1, response, 5, HAL_MAX_DELAY);
 }
-
-void modbus_illegal()
-{
-}
-

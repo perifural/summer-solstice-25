@@ -24,4 +24,3 @@ void modbus_fc_05(uint8_t func);
 void modbus_fc_06(uint8_t func);
 void modbus_fc_10(uint8_t func);
 void modbus_exception(uint8_t func, uint8_t exception_code);
-void modbus_illegal();
