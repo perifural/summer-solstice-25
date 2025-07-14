@@ -1,0 +1,7 @@
+*
+!.gitignore
+!*.ioc
+!Core/
+!Core/**
+!User-Libs/
+!User-Libs/**
