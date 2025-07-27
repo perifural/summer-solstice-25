@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "mpu6050.h": "c",
+        "ioi2c.h": "c",
+        "delay.h": "c",
+        "angle.h": "c"
+    }
+}
